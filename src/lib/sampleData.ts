@@ -1,8 +1,11 @@
-export const generateSampleData = () => {
+import { DashboardData } from '@/types/dashboard';
+
+export const generateSampleData = (): DashboardData => {
   const timeStats = [
     { name: 'Morning', value: 45 },
     { name: 'Afternoon', value: 78 },
-    { name: 'Evening', value: 32 }
+    { name: 'Evening', value: 32 },
+    { name: 'Night', value: 25 }
   ];
 
   const domains = [
@@ -29,16 +32,37 @@ export const generateSampleData = () => {
     low: 45
   };
 
+  // Generate sample raw data
+  const rawData = Array.from({ length: 50 }, (_, i) => ({
+    date: new Date(2024, 0, i + 1).toISOString(),
+    hour: Math.floor(Math.random() * 24),
+    dayOfWeek: Math.floor(Math.random() * 7),
+    provider: ['email', 'google', 'github'][Math.floor(Math.random() * 3)],
+    hasAvatar: Math.random() > 0.5,
+    fullName: `User ${i + 1}`,
+    email: `user${i + 1}@example.com`,
+    domain: ['gmail.com', 'outlook.com', 'company.com'][Math.floor(Math.random() * 3)],
+    engagement: Math.floor(Math.random() * 5),
+    timeOfDay: ['Morning', 'Afternoon', 'Evening', 'Night'][Math.floor(Math.random() * 4)]
+  }));
+
   return {
+    rawData,
     timeStats,
     domains,
     weekActivity,
     engagement,
+    monthlyStats: {
+      thisMonth: 250,
+      monthlyGrowth: '23.5%'
+    },
     totalUsers: 250,
     activeUsers: 180,
     profileComplete: 145,
     completionRate: 58,
-    domainsCount: 12,
-    peakActivity: 'Afternoon'
+    domainsCount: 5,
+    peakActivity: 'Afternoon',
+    monthlySignups: 250,
+    monthlyGrowth: '23.5%'
   };
 };

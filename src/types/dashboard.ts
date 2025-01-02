@@ -1,3 +1,16 @@
+export interface ProcessedData {
+  date: string;
+  hour: number;
+  dayOfWeek: number;
+  provider: string;
+  hasAvatar: boolean;
+  fullName: string;
+  email: string;
+  domain: string;
+  engagement: number;
+  timeOfDay: string;
+}
+
 export interface TimeStats {
   name: string;
   value: number;
@@ -20,17 +33,9 @@ export interface EngagementLevels {
   low: number;
 }
 
-export interface ProcessedData {
-  date: string;
-  hour: number;
-  dayOfWeek: number;
-  provider: string;
-  hasAvatar: boolean;
-  fullName: string;
-  email: string;
-  domain: string;
-  engagement: number;
-  timeOfDay: string;
+export interface MonthlyStats {
+  thisMonth: number;
+  monthlyGrowth: string;
 }
 
 export interface DashboardData {
@@ -39,8 +44,13 @@ export interface DashboardData {
   domains: DomainStats[];
   weekActivity: WeeklyActivity[];
   engagement: EngagementLevels;
-  monthlyStats: {
-    thisMonth: number;
-    monthlyGrowth: string;
-  };
+  monthlyStats: MonthlyStats;
+  totalUsers: number;
+  activeUsers: number;
+  profileComplete: number;
+  completionRate: number;
+  domainsCount: number;
+  peakActivity: string;
+  monthlySignups: number;
+  monthlyGrowth: string;
 }

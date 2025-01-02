@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import Papa from 'papaparse';
 import _ from 'lodash';
 import { Upload } from 'lucide-react';
-import { processCSVData as processCSVDataUtil } from '@/lib/processData';
+import { processCSVDataUtil } from '@/lib/processData';
 import type { DashboardData } from '@/types/dashboard';
 import { WeeklyActivityChart } from './charts/WeeklyActivityChart';
 import { TimeDistributionChart } from './charts/TimeDistributionChart';
@@ -45,36 +45,40 @@ const DragDropDashboard = () => {
     }
   };
 
-  const handleDragOver = useCallback((e) => {
+  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(true);
   }, []);
-
-  const handleDragLeave = useCallback((e) => {
+  
+  const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(false);
   }, []);
-
-  const handleDrop = useCallback((e) => {
+  
+  const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(false);
-
+    
     const file = e.dataTransfer.files[0];
     if (file && file.type === 'text/csv') {
       const reader = new FileReader();
-      reader.onload = (event) => {
-        handleCSVData(event.target.result as string);
+      reader.onload = (event: ProgressEvent<FileReader>) => {
+        if (event.target?.result) {
+          handleCSVData(event.target.result as string);
+        }
       };
       reader.readAsText(file);
     }
   }, []);
-
-  const handleFileSelect = useCallback((e) => {
-    const file = e.target.files[0];
+  
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = (event) => {
-        handleCSVData(event.target.result as string);
+      reader.onload = (event: ProgressEvent<FileReader>) => {
+        if (event.target?.result) {
+          handleCSVData(event.target.result as string);
+        }
       };
       reader.readAsText(file);
     }

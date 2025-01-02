@@ -1,107 +1,160 @@
-import _ from 'lodash';
-import { startOfMonth, isWithinInterval, startOfYear } from 'date-fns';
-import { TimeStats, DomainStats, WeeklyActivity, EngagementLevels, ProcessedData } from '@/types/dashboard';
+import { groupBy } from 'lodash';
+import type { 
+  DashboardData, 
+  ProcessedData, 
+  TimeStats, 
+  DomainStats, 
+  WeeklyActivity, 
+  EngagementLevels,
+  MonthlyStats 
+} from '@/types/dashboard';
 
-const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+export function processCSVDataUtil(data: any[]): DashboardData {
+  const processedData: ProcessedData[] = data.map(row => ({
+    date: new Date(row.created_at).toISOString(),
+    hour: new Date(row.created_at).getHours(),
+    dayOfWeek: new Date(row.created_at).getDay(),
+    provider: row.provider || 'email',
+    hasAvatar: Boolean(row.avatar_url),
+    fullName: row.full_name || '',
+    email: row.email,
+    domain: row.email.split('@')[1],
+    engagement: calculateEngagement(row),
+    timeOfDay: getTimeOfDay(new Date(row.created_at).getHours())
+  }));
 
-interface MonthlyStats {
-  thisMonth: number;
-  monthlyGrowth: string;
-}
-
-const getMonthlyStats = (data: ProcessedData[]): MonthlyStats => {
-  const now = new Date();
-  const monthStart = startOfMonth(now);
-  const yearStart = startOfYear(now);
-  
-  const thisMonth = data.filter(user => {
-    const created = new Date(user.date);
-    return isWithinInterval(created, { start: monthStart, end: now });
-  }).length;
-
-  const total = data.filter(user => {
-    const created = new Date(user.date);
-    return isWithinInterval(created, { start: yearStart, end: now });
-  }).length;
-
-  const monthlyGrowth = total ? ((thisMonth / total) * 100).toFixed(1) : 0;
-
-  return { thisMonth, monthlyGrowth };
-};
-
-export const processCSVData = (parsedData: Record<string, any>[]) => {
-  const processedData = parsedData
-    .filter(row => row.created_at && row.email)
-    .map(row => {
-      try {
-        const created = new Date(row.created_at);
-        const meta = row.raw_app_meta_data ? JSON.parse(row.raw_app_meta_data) : {};
-        const userMeta = row.raw_user_meta_data ? JSON.parse(row.raw_user_meta_data) : {};
-        const lastSignIn = new Date(row.last_sign_in_at || created);
-        
-        return {
-          date: row.created_at.split(' ')[0],
-          hour: created.getHours(),
-          dayOfWeek: created.getDay(),
-          provider: meta.provider || 'unknown',
-          hasAvatar: Boolean(userMeta.avatar_url),
-          fullName: userMeta.full_name || '',
-          email: row.email,
-          domain: row.email.split('@')[1],
-          engagement: Math.max(0, (lastSignIn - created) / (1000 * 60 * 60 * 24)),
-          timeOfDay: created.getHours() < 12 ? 'Morning' : 
-                    created.getHours() < 17 ? 'Afternoon' : 'Evening'
-        };
-      } catch (error) {
-        console.error('Error processing row:', error);
-        return null;
-      }
-    })
-    .filter(Boolean);
+  const totalUsers = processedData.length;
+  const activeUsers = processedData.filter(u => u.engagement > 0).length;
+  const profileComplete = processedData.filter(u => u.hasAvatar && u.fullName).length;
+  const completionRate = totalUsers ? Math.round((profileComplete / totalUsers) * 100) : 0;
 
   return {
     rawData: processedData,
-    timeStats: getTimeDistribution(processedData),
-    domains: getDomainStats(processedData),
-    weekActivity: getWeeklyActivity(processedData),
-    engagement: getEngagementLevels(processedData),
-    monthlyStats: getMonthlyStats(processedData)
+    timeStats: calculateTimeStats(processedData),
+    domains: calculateDomainStats(processedData),
+    weekActivity: calculateWeeklyActivity(processedData),
+    engagement: calculateEngagementLevels(processedData),
+    monthlyStats: calculateMonthlyStats(processedData),
+    totalUsers,
+    activeUsers,
+    profileComplete,
+    completionRate,
+    domainsCount: calculateDomainStats(processedData).length,
+    peakActivity: getPeakActivity(processedData),
+    monthlySignups: processedData.length,
+    monthlyGrowth: calculateMonthlyGrowth(processedData)
   };
-};
+}
 
-const getTimeDistribution = (data: ProcessedData[]): TimeStats[] => 
-  _(data)
-    .groupBy('timeOfDay')
-    .map((users, time) => ({
-      name: time,
-      value: users.length
-    }))
-    .value();
+function calculateEngagement(row: any): number {
+  let score = 0;
+  
+  // Basic profile completion
+  if (row.avatar_url) score += 2;
+  if (row.full_name) score += 1;
+  
+  // Activity indicators
+  if (row.last_sign_in_at) {
+    const lastSignIn = new Date(row.last_sign_in_at);
+    const now = new Date();
+    const daysSinceLastSignIn = Math.floor((now.getTime() - lastSignIn.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (daysSinceLastSignIn < 7) score += 3;
+    else if (daysSinceLastSignIn < 30) score += 2;
+    else if (daysSinceLastSignIn < 90) score += 1;
+  }
 
-const getDomainStats = (data: ProcessedData[]): DomainStats[] =>
-  _(data)
-    .groupBy('domain')
-    .map((users, domain) => ({
+  return score;
+}
+
+function getTimeOfDay(hour: number): string {
+  if (hour >= 5 && hour < 12) return 'Morning';
+  if (hour >= 12 && hour < 17) return 'Afternoon';
+  if (hour >= 17 && hour < 21) return 'Evening';
+  return 'Night';
+}
+
+function calculateTimeStats(data: ProcessedData[]): TimeStats[] {
+  const timeGroups = groupBy(data, 'timeOfDay');
+  return Object.entries(timeGroups).map(([time, users]) => ({
+    name: time,
+    value: users.length
+  }));
+}
+
+function calculateDomainStats(data: ProcessedData[]): DomainStats[] {
+  const domainGroups = groupBy(data, 'domain');
+  return Object.entries(domainGroups)
+    .map(([domain, users]) => ({
       name: domain,
       users: users.length
     }))
-    .orderBy(['users'], ['desc'])
-    .take(5)
-    .value();
+    .sort((a, b) => b.users - a.users)
+    .slice(0, 5);
+}
 
-const getWeeklyActivity = (data: ProcessedData[]): WeeklyActivity[] =>
-  _(data)
-    .groupBy('dayOfWeek')
-    .map((users, day) => ({
-      name: weekDays[day],
-      total: users.length,
-      withProfile: users.filter(u => u.hasAvatar && u.fullName).length
-    }))
-    .sortBy(d => weekDays.indexOf(d.name))
-    .value();
+function calculateWeeklyActivity(data: ProcessedData[]): WeeklyActivity[] {
+  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const dayGroups = groupBy(data, 'dayOfWeek');
 
-const getEngagementLevels = (data: ProcessedData[]): EngagementLevels => ({
-  high: data.filter(u => u.engagement > 7).length,
-  medium: data.filter(u => u.engagement > 2 && u.engagement <= 7).length,
-  low: data.filter(u => u.engagement <= 2).length
-});
+  return days.map((name, index) => ({
+    name,
+    total: (dayGroups[index] || []).length,
+    withProfile: (dayGroups[index] || []).filter(user => 
+      user.hasAvatar && Boolean(user.fullName)
+    ).length
+  }));
+}
+
+function calculateEngagementLevels(data: ProcessedData[]): EngagementLevels {
+  return {
+    high: data.filter(user => user.engagement >= 4).length,
+    medium: data.filter(user => user.engagement >= 2 && user.engagement < 4).length,
+    low: data.filter(user => user.engagement < 2).length
+  };
+}
+
+function calculateMonthlyStats(data: ProcessedData[]): MonthlyStats {
+  const now = new Date();
+  const thisMonth = data.filter(user => {
+    const userDate = new Date(user.date);
+    return userDate.getMonth() === now.getMonth() && 
+           userDate.getFullYear() === now.getFullYear();
+  }).length;
+
+  const lastMonth = data.filter(user => {
+    const userDate = new Date(user.date);
+    const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1);
+    return userDate.getMonth() === lastMonthDate.getMonth() && 
+           userDate.getFullYear() === lastMonthDate.getFullYear();
+  }).length;
+
+  const growth = lastMonth ? ((thisMonth - lastMonth) / lastMonth) * 100 : 0;
+
+  return {
+    thisMonth,
+    monthlyGrowth: `${growth.toFixed(1)}%`
+  };
+}
+
+function getPeakActivity(data: ProcessedData[]): string {
+  const timeStats = calculateTimeStats(data);
+  return timeStats.reduce((peak, current) => 
+    current.value > peak.value ? current : peak
+  ).name;
+}
+
+function calculateMonthlyGrowth(data: ProcessedData[]): string {
+  const stats = calculateMonthlyStats(data);
+  return stats.monthlyGrowth;
+}
+
+// Utility function to format dates consistently
+export function formatDate(date: Date): string {
+  return date.toISOString();
+}
+
+// Utility function to calculate percentage
+export function calculatePercentage(part: number, total: number): number {
+  return total > 0 ? Math.round((part / total) * 100) : 0;
+}
