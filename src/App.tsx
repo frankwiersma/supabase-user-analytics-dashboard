@@ -5,7 +5,7 @@ import { ThemeToggle } from './components/ThemeToggle';
 
 function App() {
   return (
-    <ThemeProvider attribute="class" defaultTheme="dark">
+    <ThemeProvider attribute="class" defaultTheme="dark" forcedTheme="dark">
       <div className="container">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-2">
