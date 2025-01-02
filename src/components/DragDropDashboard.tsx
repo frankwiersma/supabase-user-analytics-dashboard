@@ -86,10 +86,10 @@ const DragDropDashboard = () => {
 
   if (!hasData) {
     const sampleData = generateSampleData();
-
+  
     return (
-      <div className="relative">
-        <div className="pointer-events-none opacity-40 filter blur-[2px]">
+      <div className="relative min-h-[100dvh] flex items-center justify-center">
+        <div className="absolute inset-0 pointer-events-none opacity-40 filter blur-[2px]">
           <StatsCards {...sampleData} />
           <div className="grid gap-4 md:grid-cols-2 mt-8">
             <WeeklyActivityChart data={sampleData.weekActivity} />
@@ -100,21 +100,21 @@ const DragDropDashboard = () => {
         </div>
         
         <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-sm">
-        <div
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          className={`w-96 h-64 flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-8 transition-colors bg-card shadow-lg
-            ${isDragging ? 'border-blue-500 bg-blue-500/10' : 'border-border'}`}
-        >
-          <Upload className="h-12 w-12 text-muted-foreground mb-4" />
-          <h2 className="text-xl font-semibold mb-2 text-foreground">Drop your CSV file here</h2>
-          <div className="text-sm text-muted-foreground mb-4 text-center">
-            <p className="mb-2">Export your Supabase users with:</p>
-            <code className="bg-muted px-2 py-1 rounded">select * from auth.users;</code>
-          </div>
-          <p className="text-muted-foreground mb-4">- then -</p>
-          <label className="cursor-pointer bg-emerald-500 text-white px-4 py-2 rounded hover:bg-emerald-600 transition-colors">
+          <div
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            className={`w-[90%] max-w-96 mx-4 h-64 flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-8 transition-colors bg-card shadow-lg
+              ${isDragging ? 'border-blue-500 bg-blue-500/10' : 'border-border'}`}
+          >
+            <Upload className="h-12 w-12 text-muted-foreground mb-4" />
+            <h2 className="text-xl font-semibold mb-2 text-foreground">Drop your CSV file here</h2>
+            <div className="text-sm text-muted-foreground mb-4 text-center">
+              <p className="mb-2">Export your Supabase users with:</p>
+              <code className="bg-muted px-2 py-1 rounded">select * from auth.users;</code>
+            </div>
+            <p className="text-muted-foreground mb-4">- then -</p>
+            <label className="cursor-pointer bg-emerald-500 text-white px-4 py-2 rounded hover:bg-emerald-600 transition-colors">
               Upload CSV
               <input
                 type="file"
@@ -123,8 +123,8 @@ const DragDropDashboard = () => {
                 className="hidden"
               />
             </label>
+          </div>
         </div>
-      </div>
       </div>
     );
   }
