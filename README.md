@@ -2,7 +2,11 @@
 
 A beautiful, interactive dashboard for visualizing Supabase user analytics data. Built with React, Vite, and shadcn/ui, featuring a dark/light theme and responsive design.
 
-![Dashboard Preview](https://raw.githubusercontent.com/supabase/supabase/master/apps/www/public/img/supabase-og-image.png)
+## Live Demo
+
+🌐 Try it out: [supabase-user-analytics.osint-app.com](http://supabase-user-analytics.osint-app.com/)
+
+![Dashboard Preview](img/dashboard-preview.png)
 
 ## Features
 
